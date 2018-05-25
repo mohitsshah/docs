@@ -16,6 +16,7 @@ gensim = "*"
 "8f83e8e" = {path = "./externals/tesserocr", editable = false}
 tabulate = "*"
 openpyxl = "*"
+tqdm = "*"
 
 [dev-packages]
 pylint = "*"

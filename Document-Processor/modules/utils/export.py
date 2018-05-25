@@ -28,7 +28,8 @@ def export_tables(document, output_dir, name, fmt="txt"):
         file_path = os.path.join(output_dir, file_name)        
         if fmt == "txt":
             table_string.append(tabulate.tabulate(df, tablefmt="psql"))            
-            open(file_path, "w").write("\n".join(table_string))
+            open(file_path, "w").write("\n".join(table_string))            
+            print ("\n".join(table_string))
         elif fmt == "csv":
             df.to_csv(file_path)
         elif fmt == "xlsx":

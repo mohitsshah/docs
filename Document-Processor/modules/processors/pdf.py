@@ -353,5 +353,5 @@ class Processor(object):
             with open(json_file, "w") as fi:
                 fi.write(json.dumps(json_document))
         if self.debug:
-            export_utils.export_tables(json_document, self.tables_dir, self.name, self.table_fmt)
+            export_utils.export_tables(json_document, output_dir=self.tables_dir, name=self.name, fmt=self.table_fmt)
 

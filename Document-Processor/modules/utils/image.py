@@ -3,6 +3,8 @@ import os
 import numpy as np
 import cv2
 
+# TODO: Hide subprocess output messages
+
 def convert_page_to_image(page_id, infile, outfile, overwrite, resample=True):
     dpi = 300
     num = int(page_id)
@@ -13,13 +15,13 @@ def convert_page_to_image(page_id, infile, outfile, overwrite, resample=True):
             dpi, infile, num - 1, outfile)
     else:
         cmd = "convert -units PixelsPerInch %s[%d] %s" % (
-            infile, num - 1, outfile)        
+            infile, num - 1, outfile)
     try:
-        subprocess.check_output(cmd, shell=True)        
+        subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError:
         raise Exception("Image Conversion Error, Page: %s" % page_id)
     return outfile
-    
+
 def crop_image(infile, box, overwrite):
     bbox = [300 * float(b) / 72 for b in box]
     width = int(bbox[2] - bbox[0])
