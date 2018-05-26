@@ -2,7 +2,7 @@ import os
 import argparse
 import shutil
 import glob
-from modules.processors import pdf
+from processors import pdf
 
 accepted_extensions = ["pdf", "doc", "docx",
                        "xls", "xlsx", "xlsm", "tiff", "tif"]
@@ -17,7 +17,7 @@ def get_files(src):
     return files
 
 
-def process_files(files, dst, overwrite, tessdata, osd_mode):
+def process_files(files, dst, args):
     print("Total %d files" % len(files))
     for f in files:
         filename = f.split("/")[-1]
@@ -26,11 +26,10 @@ def process_files(files, dst, overwrite, tessdata, osd_mode):
         raw_dir = os.path.join(output_dir, "raw")
         os.makedirs(raw_dir, exist_ok=True)
         raw_file = os.path.join(raw_dir, filename)
-        if not os.path.exists(raw_file) or overwrite:
-            shutil.copy(f, raw_file)
+        shutil.copy(f, raw_file)
         print("Working on %s..." % filename)
         if ext == "pdf":
-            job = pdf.Processor(output_dir, tessdata, overwrite, osd_mode)
+            job = pdf.Processor(output_dir, args)
             job.run()
         elif ext.startswith("tif"):
             pass
@@ -48,13 +47,11 @@ def process_files(files, dst, overwrite, tessdata, osd_mode):
 
 
 def run(args):
-    src = os.path.abspath(args.src)
-    dst = os.path.abspath(args.dst)
-    overwrite = args.overwrite
-    overwrite = True if overwrite == "y" else False
-    tessdata = args.tessdata
-    tessdata = tessdata if len(tessdata) > 0 else None
-    osd_mode = args.osd
+    src = os.path.abspath(args["src"])
+    dst = os.path.abspath(args["dst"])    
+    args["tessdata"] = os.path.abspath(args["tessdata"])
+    if not os.path.isdir(args["tessdata"]):
+        raise Exception("Invalid tessdata directory (%s)" % (args["tessdata"]))
     if not os.path.exists(src):
         raise Exception("Directory (%s) does not exist." % (src))
     if not os.path.isdir(src):
@@ -66,7 +63,7 @@ def run(args):
         print("Creating output directory at %s" % (dst))
         os.makedirs(dst, exist_ok=True)
 
-    process_files(files, dst, overwrite, tessdata, osd_mode)
+    process_files(files, dst, args)
 
 
 if __name__ == '__main__':
@@ -81,16 +78,22 @@ if __name__ == '__main__':
                        required=True,
                        help="Destination directory")
     flags.add_argument("-overwrite",
-                       type=str,
-                       choices=["y", "n"],
-                       default="n", help="Overwrite files")
+                       type=bool,                       
+                       default=False, 
+                       help="Overwrite files")
     flags.add_argument("-tessdata",
                        type=str,
-                       default="",
-                       help="Path to Tessdata model (v4) for tesserocr")
-    flags.add_argument("-osd", type=str,
+                       required=True,
+                       help="Path to Tessdata model (v4) for tesserocr. Applies to PDF/TIFF/Images")
+    flags.add_argument("-osd",
+                       type=str,
                        choices=["legacy", "tesserocr"],
                        default="legacy",
-                       help="Choose mode for Orientation detection. Legacy mode uses the tesseract command line, Tesserocr mode uses the python library.")
+                       help="Choose mode for Orientation detection. Legacy mode uses the tesseract command line, Tesserocr mode uses the python library. Applies to PDF/TIFF/Images")
+    flags.add_argument("-cleanup",
+                       type=bool,
+                       default=True,
+                       help="Clean up temporary files/directories")
     args = flags.parse_args()
+    args = (vars(args))
     run(args)
