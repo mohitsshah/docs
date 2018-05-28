@@ -2,7 +2,7 @@ import os
 import argparse
 import shutil
 import glob
-from processors import pdf
+from processors import pdf, tiff
 
 accepted_extensions = ["pdf", "doc", "docx",
                        "xls", "xlsx", "xlsm", "tiff", "tif"]
@@ -32,7 +32,8 @@ def process_files(files, dst, args):
             job = pdf.Processor(output_dir, args)
             job.run()
         elif ext.startswith("tif"):
-            pass
+            job = tiff.Processor(output_dir, args)
+            job.run()
         elif ext == "doc":
             pass
         elif ext == "docx":
