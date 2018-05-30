@@ -69,7 +69,7 @@ def run(args):
 
 if __name__ == '__main__':
     flags = argparse.ArgumentParser(
-        "Command line arguments for Document Processing")
+        "Command line arguments for Document Conversion to JSON")
     flags.add_argument("-src",
                        type=str,
                        required=True,
