@@ -386,8 +386,107 @@ def make_paragraph(words, start, stop):
         return [x0, y0, x1, y1, "PARA", W]
     return block
 
+def is_y_similar(ry0, ry1, y0, y1):
+    if np.abs(ry0 - y0) < 5 and np.abs(ry1 - y1) < 5:
+        return True
+    return False
+
+def get_lines(cell):
+    unique_y = {}
+    for word in cell:
+        if len(word[-1]) > 0:
+            unique_y[(word[1], word[3])] = True    
+    C_inds = []
+    lines = []
+    for y in unique_y.keys():
+        ref_y0 = y[0]
+        ref_y1 = y[1]
+        C = []
+        inds = []
+        for idx, c in enumerate(cell):
+            if idx not in inds:
+                y0 = c[1]
+                y1 = c[3]
+                if is_y_similar(ref_y0, ref_y1, y0, y1):
+                    C.append(c)
+                    inds.append(idx)
+        C = sorted(C, key=lambda x: (x[1], x[0]))
+        inds = list(set(inds))
+        C_inds.extend(inds)
+        lines.append(C)
+    return lines
+
+def split_multiline_cells(table):
+    new_table = []
+    for row in table:
+        num_lines = []
+        cols = []
+        for cell in row:
+            lines = get_lines(cell)
+            cols.append(lines)             
+            num_lines.append(len(lines))
+        s = set(num_lines)
+        if 0 in s:
+            s.remove(0)
+        if len(s) == 1: 
+            if 1 in s:
+                new_table.append(row)
+                continue
+            else:                
+                r = list(s)[0]                
+                for x in range(r):
+                    new_row = []
+                    for cell in cols:
+                        try:
+                            l = cell[x]
+                            new_row.append(l)
+                        except Exception:
+                            new_row.append([])
+                    new_table.append(new_row)                
+        else:
+            max_lines_idx = np.argsort(num_lines)[-1]
+            ref = cols[max_lines_idx]
+            prev_rr = False
+            p_rr = [[] for _ in range(len(cols))]
+            rr = [[] for _ in range(len(cols))]
+            for line in ref:
+                y0 = min([w[1] for w in line])
+                y1 = max([w[3] for w in line])
+                rr[max_lines_idx].extend(line)
+                for ii, col in enumerate(cols):
+                    if ii == max_lines_idx: continue
+                    for line2 in col:
+                        yy0 = min([w[1] for w in line2])
+                        yy1 = max([w[3] for w in line2])
+                        if is_y_similar(y0, y1, yy0, yy1):
+                            rr[ii].extend(line2)
+                ll = [float(len(xx) > 0) for xx in rr]
+                m = np.mean(ll)
+                if m <= 0.5:
+                    if prev_rr is False:
+                        new_table.append(rr)
+                        prev_rr = False
+                        p_rr = [[] for _ in range(len(cols))]
+                        rr = [[] for _ in range(len(cols))]
+                    else:                        
+                        for j, tmp in enumerate(rr):
+                            p_rr[j].extend(tmp)
+                        prev_rr = True
+                        rr = [[] for _ in range(len(cols))]
+                else:
+                    if prev_rr is not False:
+                        new_table.append(p_rr)
+                    p_rr = rr
+                    prev_rr = True
+                    rr = [[] for _ in range(len(cols))]
+            if prev_rr is not False:
+                new_table.append(p_rr)
+
+    return new_table
+
 def make_table(table):
     block = None
+    table = split_multiline_cells(table)
     W = [x for r in table for c in r for x in c if len(x) > 0]
     W = sorted(W, key=lambda x: (x[1], x[0]))
     if len(W) > 0:

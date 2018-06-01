@@ -2,8 +2,8 @@ import argparse
 import json
 import glob
 import os
-import extractors.extractor as extractor
-
+import os
+from processors.utils.export import export_tables as export
 accepted_extensions = ["json"]
 
 def get_files(src):
@@ -15,18 +15,19 @@ def get_files(src):
     return files
 
 def process_files(files, args):
-    model = extractor.Extractor(args)
-    model.set_defs(args["defs"])
+    dst = args["dst"]
     for f in files:
-        model.set_json(f)
-        df = model.extract()
-        print (df)
+        document = json.load(open(f))
+        name = f.split("/")[-1].split(".")[0]
+        dst_dir = os.path.join(dst, name)
+        os.makedirs(dst_dir, exist_ok=True)
+        export(document, dst_dir, name, fmt=args["fmt"], debug=args["debug"])
 
 
 
 def run(args):
     src = os.path.abspath(args["src"])
-    defs = os.path.abspath(args["defs"])
+    dst = os.path.abspath(args["dst"])
     if not os.path.exists(src):
         raise Exception("Directory/File (%s) does not exist." % (src))
     is_directory = None
@@ -42,10 +43,9 @@ def run(args):
         files = [src]
     if len(files) == 0:
         raise Exception("Found 0 files in %s" % (src))
-
-    if not os.path.exists(defs):
-        raise Exception("Definitions File (%s) does not exist." % (defs))
-
+    os.makedirs(dst, exist_ok=True)
+    args["src"] = src
+    args["dst"] = dst
     process_files(files, args)
 
 if __name__ == '__main__':
@@ -55,27 +55,19 @@ if __name__ == '__main__':
                        type=str,
                        required=True,
                        help="Source directory of files/Single JSON file")
-    flags.add_argument("-defs",
+    flags.add_argument("-dst",
                        type=str,
                        required=True,
-                       help="Path to Definitions (JSON) file")
-    flags.add_argument("-data_dir",
-                       type=str,
-                       required=True,
-                       help="Path to QANet data directory file")
-    flags.add_argument("-model_dir",
-                       type=str,
-                       required=True,
-                       help="Path to QANet model directory file")
-    flags.add_argument("-model_name",
-                       type=str,
-                       default="FRC",
-                       required=True,
-                       help="QANet model name")
-    flags.add_argument("-overwrite",
+                       help="Destination directory")
+    flags.add_argument("-debug",
                        type=bool,
                        default=False,
-                       help="Overwrite files")
+                       help="Write messages to console")
+    flags.add_argument("-fmt",
+                       type=str,
+                       required=True,
+                       choices=["txt", "csv", "xlsx", "df"],
+                       help="Format to write Tables. Choices - txt (Plain Text), csv, xlsx, df (Pandas dataframe pickled)")
     args = flags.parse_args()
     args = (vars(args))
     run(args)

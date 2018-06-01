@@ -2,7 +2,7 @@ import pandas
 import tabulate
 import os
 
-def export_tables(document, output_dir, name, fmt="txt"):
+def export_tables(document, output_dir, name, fmt="txt", debug=False):
     pages = document["pages"]
     tables = [(page_num, segment["content"], segment["bbox"]) for page_num, page in enumerate(pages) for segment in page["segments"] if segment["label"] == "TABLE"]
     for table_num, (page_num, table, bbox) in enumerate(tables):
@@ -29,7 +29,8 @@ def export_tables(document, output_dir, name, fmt="txt"):
         if fmt == "txt":
             table_string.append(tabulate.tabulate(df, tablefmt="psql"))            
             open(file_path, "w").write("\n".join(table_string))            
-            print ("\n".join(table_string))
+            if debug:
+                print ("\n".join(table_string))
         elif fmt == "csv":
             df.to_csv(file_path)
         elif fmt == "xlsx":

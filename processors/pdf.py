@@ -61,6 +61,7 @@ class Processor(object):
                     if len(chars) > 0:
                         words.append(xml_utils.make_word_box(chars))
                         chars = []
+        words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]
         words = sorted(words, key=lambda x: (x[1], x[0]))
         return words
 
@@ -130,6 +131,7 @@ class Processor(object):
                 bb = [word[0][0], word[0][1], word[-1]
                       [2], word[-1][3], "".join(tmp)]
                 words.append(bb)
+        words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]
         words = sorted(words, key=lambda x: (x[1], x[0]))
         return words
 
@@ -170,6 +172,7 @@ class Processor(object):
                     image_file = img_utils.rotate_image(image_file, rotation)
                 ocr = tess_utils.OCR(image_file, self.tessdata)
                 words = ocr.perform_ocr(x_offset=0, y_offset=0)
+                words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]
                 regions_words.append(words)
             else:
                 cropped_file = img_utils.crop_image(
@@ -177,12 +180,13 @@ class Processor(object):
                 ocr = tess_utils.OCR(cropped_file, self.tessdata)
                 words = ocr.perform_ocr(
                     x_offset=box[0], y_offset=box[1])
+                words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]
                 regions_words.append(words)
 
         return regions, regions_words, is_page_image
 
     def make_segments(self, words, image_regions, image_words, page_id, width, height):
-        page_matrix_raw, page_matrix, median_height = seg_utils.image_from_words(words, width, height)        
+        page_matrix_raw, page_matrix, median_height = seg_utils.image_from_words(words, width, height)
 
         tmp1 = seg_utils.cut_segment(page_matrix)
         tmp2 = tmp1[1:] + [np.shape(page_matrix)[0]]
