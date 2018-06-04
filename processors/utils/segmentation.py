@@ -309,7 +309,6 @@ def make_cells(segment, margins, words, start, stop):
             max_idx = idx
     table = []
     if max_idx > -1:
-        num_cols = max_len
         ref_start, ref_stop = tb_cuts[max_idx]
         y0 = float(start + margins[0] + ref_start) - 2
         y1 = float(y0 + (ref_stop - ref_start)) + 4
@@ -355,14 +354,12 @@ def make_cells(segment, margins, words, start, stop):
                     cell_start = cell_words[0][0]
                     cell_stop = cell_words[-1][2]
                     s = None
-                    e = None
                     for idx, tmp in enumerate(ref_cells):
                         if cell_start <= tmp[1]:
                             s = idx
                             break
                     for idx, tmp in enumerate(ref_cells):
                         if cell_stop <= tmp[0]:
-                            e = idx
                             break
                     if s is not None:
                         row[s] += cell_words
@@ -377,7 +374,7 @@ def make_paragraph(words, start, stop):
     y1 = float(y0 + (stop - start)) + 4
     W = [w for w in words if w[1] >= y0]
     W = [w for w in W if w[3] <= y1]
-    W = sorted(W, key=lambda x: (x[1], x[0]))    
+    W = sorted(W, key=lambda x: (x[1], x[0]))
     if len(W) > 0:
         points = [w[0:4] for w in W]
         points = np.array(points)
@@ -395,7 +392,7 @@ def get_lines(cell):
     unique_y = {}
     for word in cell:
         if len(word[-1]) > 0:
-            unique_y[(word[1], word[3])] = True    
+            unique_y[(word[1], word[3])] = True
     C_inds = []
     lines = []
     for y in unique_y.keys():
@@ -423,17 +420,17 @@ def split_multiline_cells(table):
         cols = []
         for cell in row:
             lines = get_lines(cell)
-            cols.append(lines)             
+            cols.append(lines)
             num_lines.append(len(lines))
         s = set(num_lines)
         if 0 in s:
             s.remove(0)
-        if len(s) == 1: 
+        if len(s) == 1:
             if 1 in s:
                 new_table.append(row)
                 continue
-            else:                
-                r = list(s)[0]                
+            else:
+                r = list(s)[0]
                 for x in range(r):
                     new_row = []
                     for cell in cols:
@@ -442,7 +439,7 @@ def split_multiline_cells(table):
                             new_row.append(l)
                         except Exception:
                             new_row.append([])
-                    new_table.append(new_row)                
+                    new_table.append(new_row)
         else:
             max_lines_idx = np.argsort(num_lines)[-1]
             ref = cols[max_lines_idx]
@@ -468,7 +465,7 @@ def split_multiline_cells(table):
                         prev_rr = False
                         p_rr = [[] for _ in range(len(cols))]
                         rr = [[] for _ in range(len(cols))]
-                    else:                        
+                    else:
                         for j, tmp in enumerate(rr):
                             p_rr[j].extend(tmp)
                         prev_rr = True
@@ -505,7 +502,7 @@ def make_blocks(segments, page_matrix, words):
         if label == "TABLE":
             segment_matrix = page_matrix[start:stop, :]
             margins = get_segment_margins(segment_matrix)
-            segment_height, segment_width = np.shape(segment_matrix)
+            # segment_height, segment_width = np.shape(segment_matrix)
             cropped_segment = segment_matrix[margins[0]:margins[1], :]
             table = make_cells(cropped_segment, margins, words, start, stop)
             if len(table) == 1:
@@ -516,6 +513,6 @@ def make_blocks(segments, page_matrix, words):
         else:
             block = make_paragraph(words, start, stop)
         if block is not None:
-            blocks.append(block)    
+            blocks.append(block)
     return blocks
 
