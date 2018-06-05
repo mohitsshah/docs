@@ -16,6 +16,7 @@ import processors.utils.export as export_utils
 class Processor(object):
     def __init__(self, output_dir, args):
         self.output_dir = output_dir
+        self.use_ocr = args["use_ocr"]
         self.tessdata = args["tessdata"]
         self.overwrite = args["overwrite"]
         self.osd_mode = args["osd"]
@@ -142,12 +143,13 @@ class Processor(object):
         image_file = None
         if len(figures) == 0:
             return regions, regions_words, False
-        image_file = img_utils.convert_page_to_image(page_id,
-                                                  os.path.join(
-                                                      self.raw_dir, self.filename),
-                                                  os.path.join(
-                                                      self.image_dir, "%s-%s.png" % (self.name, page_id)),
-                                                  self.overwrite)
+        if self.use_ocr:
+            image_file = img_utils.convert_page_to_image(page_id,
+                                                    os.path.join(
+                                                        self.raw_dir, self.filename),
+                                                    os.path.join(
+                                                        self.image_dir, "%s-%s.png" % (self.name, page_id)),
+                                                    self.overwrite)
         page_matrix = np.zeros((int(height), int(width)))
         for figure in figures:
             box = xml_utils.format_xml_box(
@@ -166,21 +168,28 @@ class Processor(object):
         for box in regions:
             if box[2] == width and box[3] == height:
                 is_page_image = True
-                osd = tess_utils.OSD(image_file, self.tessdata, self.osd_mode)
-                rotation = osd.perform_osd()
-                if rotation != 0:
-                    image_file = img_utils.rotate_image(image_file, rotation)
-                ocr = tess_utils.OCR(image_file, self.tessdata)
-                words = ocr.perform_ocr(x_offset=0, y_offset=0)
-                words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]
+                if self.use_ocr:
+                    osd = tess_utils.OSD(image_file, self.tessdata, self.osd_mode)
+                    rotation = osd.perform_osd()
+                    if rotation != 0:
+                        image_file = img_utils.rotate_image(image_file, rotation)
+                    ocr = tess_utils.OCR(image_file, self.tessdata)
+                    words = ocr.perform_ocr(x_offset=0, y_offset=0)
+                    words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]                    
+                else:
+                    words = []
                 regions_words.append(words)
+
             else:
-                cropped_file = img_utils.crop_image(
-                    image_file, box, self.overwrite)
-                ocr = tess_utils.OCR(cropped_file, self.tessdata)
-                words = ocr.perform_ocr(
-                    x_offset=box[0], y_offset=box[1])
-                words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]
+                if self.use_ocr:
+                    cropped_file = img_utils.crop_image(
+                        image_file, box, self.overwrite)
+                    ocr = tess_utils.OCR(cropped_file, self.tessdata)
+                    words = ocr.perform_ocr(
+                        x_offset=box[0], y_offset=box[1])
+                    words = [[int(w[0]), int(w[1]), int(w[2]), int(w[3]), w[-1]] for w in words]
+                else:
+                    words = []
                 regions_words.append(words)
 
         return regions, regions_words, is_page_image
@@ -240,6 +249,7 @@ class Processor(object):
             words = list(image_words[0])
             image_regions = []
             image_words = []
+            num_images = 1
         else:
             if len(text_words) == 0 and len(image_regions) == 0:
                 image_file = img_utils.convert_page_to_image(page_id,
@@ -256,17 +266,19 @@ class Processor(object):
                 words = ocr.perform_ocr()
                 image_regions = []
                 image_words = []
+                num_images = 1
                 is_page_image = True
             else:
                 words = text_words
+                num_images = len(image_regions)
         segments = self.make_segments(words, image_regions, image_words, page_id, width, height)
-        return segments, is_page_image
+        return segments, is_page_image, num_images
 
 
     def make_json(self, xml_file):
         tree = xml.etree.ElementTree.parse(xml_file)
         root = tree.getroot()
-        document = {"total_pages": None, "pages": []}
+        document = {"total_pages": None, "total_images": 0, "pages": []}
         page_count = 0
         for child in root:
             tag = child.tag
@@ -279,13 +291,14 @@ class Processor(object):
                 height = float(height)
                 page["width"] = width
                 page["height"] = height
-                segments, is_page_image = self.make_page(root, page_id, width, height)
+                segments, is_page_image, num_images = self.make_page(root, page_id, width, height)
                 page["is_page_image"] = is_page_image
                 for segment in segments:
                     x0, y0, x1, y1, label, data = segment
                     page_segment = {"bbox": [int(x0), int(y0), int(x1), int(y1)], "label": label, "content": data}
                     page["segments"].append(page_segment)
                 document["pages"].append(page)
+                document["total_images"] += num_images
                 page_count += 1
         document["total_pages"] = page_count
         return document

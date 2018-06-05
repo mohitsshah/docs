@@ -50,7 +50,7 @@ def run(args):
 
 if __name__ == '__main__':
     flags = argparse.ArgumentParser(
-        "Command line arguments for Information Extraction")
+        "Command line arguments for Table Export from JSON Document(s)")
     flags.add_argument("-src",
                        type=str,
                        required=True,

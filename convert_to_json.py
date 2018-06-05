@@ -32,8 +32,9 @@ def process_files(files, dst, args):
             job = pdf.Processor(output_dir, args)
             job.run()
         elif ext.startswith("tif"):
-            job = tiff.Processor(output_dir, args)
-            job.run()
+            if args["use_ocr"]:
+                job = tiff.Processor(output_dir, args)
+                job.run()
         elif ext == "doc":
             pass
         elif ext == "docx":
@@ -51,8 +52,10 @@ def run(args):
     src = os.path.abspath(args["src"])
     dst = os.path.abspath(args["dst"])    
     args["tessdata"] = os.path.abspath(args["tessdata"])
-    if not os.path.isdir(args["tessdata"]):
-        raise Exception("Invalid tessdata directory (%s)" % (args["tessdata"]))
+    args["use_ocr"] = False if args["use_ocr"] == "n" else True
+    if args["use_ocr"]:
+        if not os.path.isdir(args["tessdata"]):
+            raise Exception("Invalid tessdata directory (%s)" % (args["tessdata"]))
     if not os.path.exists(src):
         raise Exception("Directory (%s) does not exist." % (src))
     if not os.path.isdir(src):
@@ -91,6 +94,11 @@ if __name__ == '__main__':
                        choices=["legacy", "tesserocr"],
                        default="legacy",
                        help="Choose mode for Orientation detection. Legacy mode uses the tesseract command line, Tesserocr mode uses the python library. Applies to PDF/TIFF/Images")
+    flags.add_argument("-use_ocr",
+                       type=str,
+                       default="y",
+                       choices=["y", "n"],
+                       help="Flag for OCR")
     flags.add_argument("-cleanup",
                        type=bool,
                        default=True,

@@ -22,8 +22,6 @@ def process_files(files, args):
         df = model.extract()
         print (df)
 
-
-
 def run(args):
     src = os.path.abspath(args["src"])
     defs = os.path.abspath(args["defs"])
@@ -54,7 +52,7 @@ if __name__ == '__main__':
     flags.add_argument("-src",
                        type=str,
                        required=True,
-                       help="Source directory of files/Single JSON file")
+                       help="Source directory of files/Single file (JSON)")
     flags.add_argument("-defs",
                        type=str,
                        required=True,
@@ -62,16 +60,16 @@ if __name__ == '__main__':
     flags.add_argument("-data_dir",
                        type=str,
                        required=True,
-                       help="Path to QANet data directory file")
+                       help="Path to QANet data directory")
     flags.add_argument("-model_dir",
                        type=str,
                        required=True,
-                       help="Path to QANet model directory file")
+                       help="Path to QANet model directory")
     flags.add_argument("-model_name",
                        type=str,
                        default="FRC",
                        required=True,
-                       help="QANet model name")
+                       help="QANet model name (Default: FRC)")
     flags.add_argument("-overwrite",
                        type=bool,
                        default=False,

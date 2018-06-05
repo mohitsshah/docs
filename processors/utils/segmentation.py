@@ -215,6 +215,8 @@ def merge_segments(segments, page_matrix, words, width, height, median_height):
 
 
 def merge_consecutive_tables(segments):
+    return segments
+    # Disabling merge of consecutive tables. Needs refinement.
     merge_tables = []
     merge_list = []
     for idx, segment in enumerate(segments):
@@ -505,11 +507,11 @@ def make_blocks(segments, page_matrix, words):
             # segment_height, segment_width = np.shape(segment_matrix)
             cropped_segment = segment_matrix[margins[0]:margins[1], :]
             table = make_cells(cropped_segment, margins, words, start, stop)
-            if len(table) == 1:
-                # Only 1 row, probably not a table, treat it as a paragraph
-                block = make_paragraph(words, start, stop)
-            else:
-                block = make_table(table)
+            # if len(table) == 1:
+            #     # Only 1 row, probably not a table, treat it as a paragraph
+            #     block = make_paragraph(words, start, stop)
+            # else:
+            block = make_table(table)
         else:
             block = make_paragraph(words, start, stop)
         if block is not None:

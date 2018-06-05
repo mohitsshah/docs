@@ -45,24 +45,29 @@ class Extractor(object):
                     txts.append(" ".join(words))
                     blks.append(" ".join(words))
                 elif segment["label"] == "TABLE":
-                    content = segment["content"]
-                    cells = []
+                    content = segment["content"]                    
                     for row in content:
                         r = []
                         for col in row:
                             tmp = [word[-1] for word in col]
-                            r.append(" ".join(tmp))
-                        cells.append(r)
-                    num_cols = len(cells[0])
-                    for row in cells:
-                        for cell in row:
-                            txts.append(cell)
-                    if num_cols == 2:
-                        kvs.extend(cells)
-                    else:
-                        for row in cells:
-                            line = [cell for cell in row]
-                            blks.append(" ".join(line))
+                            if len(tmp) > 0:
+                                r.append(" ".join(tmp))
+                        if len(r) == 2:
+                            kk = r[0]
+                            vv = r[1]
+                            tmp_k = kk.split("/")
+                            tmp_v = vv.split("/")
+                            if len(tmp_k) == len(tmp_v):
+                                for xx in range(len(tmp_k)):
+                                    kvs.append([tmp_k[xx], tmp_v[xx]])
+                            elif len(tmp_k) > 1 and len(tmp_v) == 1:
+                                for xx in range(len(tmp_k)):
+                                    kvs.append([tmp_k[xx], tmp_v[0]])
+                            else:
+                                kvs.append(r)                            
+                        else:
+                            blks.append(" ".join(r))
+                        txts.append(" ".join(r))
 
             texts.append(txts)
             blocks.append(blks)
