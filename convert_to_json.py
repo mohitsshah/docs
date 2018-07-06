@@ -2,107 +2,121 @@ import os
 import argparse
 import shutil
 import glob
-from processors import pdf, tiff
+from processors import pdf, tiff, xlsx
 
 accepted_extensions = ["pdf", "doc", "docx",
                        "xls", "xlsx", "xlsm", "tiff", "tif"]
 
-
-def get_files(src):
+def get_files(src, formats):
     files = []
-    for extension in accepted_extensions:
+    for extension in formats:
         ext_files = glob.glob(os.path.join(
             src, "**/*." + extension), recursive=True)
         files += ext_files
     return files
 
 
-def process_files(files, dst, args):
-    print("Total %d files" % len(files))
-    for f in files:
-        filename = f.split("/")[-1]
-        name, ext = filename.split(".")
-        output_dir = os.path.join(dst, name)
-        raw_dir = os.path.join(output_dir, "raw")
-        os.makedirs(raw_dir, exist_ok=True)
-        raw_file = os.path.join(raw_dir, filename)
-        shutil.copy(f, raw_file)
-        print("Working on %s..." % filename)
-        if ext == "pdf":
-            job = pdf.Processor(output_dir, args)
+def process_files(files, args):
+    for num, f in enumerate(files, 1):
+        head, filename = os.path.split(f)
+        name, ext = os.path.splitext(filename)
+        clean_name = name.replace(" ", "_")
+        clean_filename = filename.replace(" ", "_")
+        output_dir = os.path.join(args["dst"], clean_name)
+        os.makedirs(output_dir, exist_ok=True)
+        source_file = os.path.join(output_dir, clean_filename)
+        shutil.copy2(f, source_file)
+        print("**** Processing %s (%d/%d)" % (f, num, len(files)))
+        if ext == ".pdf":
+            job = pdf.Processor(source_file, args)
             job.run()
-        elif ext.startswith("tif"):
-            if args["use_ocr"]:
-                job = tiff.Processor(output_dir, args)
-                job.run()
-        elif ext == "doc":
+        elif ext.startswith(".tif"):
+            job = tiff.Processor(source_file, args)
+            job.run()
+        elif ext == ".doc":
             pass
-        elif ext == "docx":
+        elif ext == ".docx":
             pass
-        elif ext.startswith("xls"):
-            pass
-        elif ext == "msg":
-            pass
+        elif ext.startswith(".xls"):
+            job = xlsx.Processor(f, args)
+            job.run()
         else:
             raise Exception("Unknown extension.")
-        print("Complete.")
 
 
 def run(args):
-    src = os.path.abspath(args["src"])
-    dst = os.path.abspath(args["dst"])    
-    args["tessdata"] = os.path.abspath(args["tessdata"])
-    args["use_ocr"] = False if args["use_ocr"] == "n" else True
-    if args["use_ocr"]:
-        if not os.path.isdir(args["tessdata"]):
-            raise Exception("Invalid tessdata directory (%s)" % (args["tessdata"]))
-    if not os.path.exists(src):
-        raise Exception("Directory (%s) does not exist." % (src))
-    if not os.path.isdir(src):
-        raise Exception("%s is not a directory." % (src))
-    files = get_files(src)
-    if len(files) == 0:
-        raise Exception("Found 0 files in %s" % (src))
-    if not os.path.exists(dst):
-        print("Creating output directory at %s" % (dst))
-        os.makedirs(dst, exist_ok=True)
-
-    process_files(files, dst, args)
+    args["src"] = os.path.abspath(args["src"])
+    assert os.path.exists(args["src"]), ("Source directory (%s) does not exist." % (args["src"]))
+    assert os.path.isdir(args["src"]), ("Source (%s) is not a directory." % (args["src"]))
+    args["formats"] = args["formats"] if (args["formats"] and len(args["formats"]) > 0) else accepted_extensions
+    args["tessdata"] = os.path.abspath(args["tessdata"]) if args["tessdata"] else None
+    if args["tessdata"] is not None:
+        assert os.path.exists(args["tessdata"]), ("Tessdata directory (%s) does not exist." % (args["tessdata"]))
+    args["overwrite"] = bool(args["overwrite"])
+    args["cleanup"] = bool(args["cleanup"])
+    args["store_results"] = bool(args["store_results"])
+    files = get_files(args["src"], args["formats"])
+    assert len(files) > 0, ("Found 0 files in %s" % (args["src"]))
+    args["dst"] = os.path.abspath(args["dst"])
+    os.makedirs(args["dst"], exist_ok=True)
+    process_files(files, args)
 
 
 if __name__ == '__main__':
-    flags = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(
         "Command line arguments for Document Conversion to JSON")
-    flags.add_argument("-src",
+    parser.add_argument("-s",
+                       "--src",
                        type=str,
                        required=True,
-                       help="Source directory of files")
-    flags.add_argument("-dst",
+                       dest="src",
+                       help="Source directory of files/Path to a single file")
+    parser.add_argument("-d",
+                       "--dst",
                        type=str,
                        required=True,
+                       dest="dst",
                        help="Destination directory")
-    flags.add_argument("-overwrite",
-                       type=bool,                       
-                       default=False, 
-                       help="Overwrite files")
-    flags.add_argument("-tessdata",
+    parser.add_argument("-f",
+                       "--formats",
+                       nargs="*",
                        type=str,
-                       required=True,
+                       choices=["pdf", "tiff", "tif", "xls", "xlsx", "xlsm", "doc", "docx"],
+                       dest="formats",
+                       help="File formats to process. Leave empty for all formats.")
+    parser.add_argument("-t",
+                       "--tessdata",
+                       type=str,
+                       dest="tessdata",
                        help="Path to Tessdata model (v4) for tesserocr. Applies to PDF/TIFF/Images")
-    flags.add_argument("-osd",
+    parser.add_argument("-oem",
                        type=str,
-                       choices=["legacy", "tesserocr"],
-                       default="legacy",
-                       help="Choose mode for Orientation detection. Legacy mode uses the tesseract command line, Tesserocr mode uses the python library. Applies to PDF/TIFF/Images")
-    flags.add_argument("-use_ocr",
-                       type=str,
-                       default="y",
-                       choices=["y", "n"],
-                       help="Flag for OCR")
-    flags.add_argument("-cleanup",
-                       type=bool,
-                       default=True,
+                       dest="oem",
+                       choices=["v4", "v3"],
+                       default="v4",
+                       help="OEM Mode for Tesseract")
+    parser.add_argument("-o",
+                       "--overwrite",
+                       type=int,
+                       choices=[0,1],
+                       default=0,
+                       dest="overwrite",
+                       help="Overwrite files")
+    parser.add_argument("-c",
+                       "--cleanup",
+                       type=int,
+                       choices=[0,1],
+                       default=1,
+                       dest="cleanup",
                        help="Clean up temporary files/directories")
-    args = flags.parse_args()
-    args = (vars(args))
-    run(args)
+    parser.add_argument("-st",
+                       "--store_results",
+                       type=int,
+                       choices=[0,1],
+                       default=1,
+                       dest="store_results",
+                       help="Store intermediate results (useful for debugging)")
+    args = parser.parse_args()
+    if args.formats and ("pdf" in args.formats or "tiff" in args.formats) and not args.tessdata:
+        parser.error('Missing argument -t or --tessdata.')
+    run(vars(args))

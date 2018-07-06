@@ -2,6 +2,7 @@ import subprocess
 import os
 import numpy as np
 import cv2
+import re
 
 # TODO: Hide subprocess output messages
 
@@ -22,8 +23,51 @@ def convert_page_to_image(page_id, infile, outfile, overwrite, resample=True):
         raise Exception("Image Conversion Error, Page: %s" % page_id)
     return outfile
 
-def crop_image(infile, box, overwrite):
-    bbox = [300 * float(b) / 72 for b in box]
+def convert_pdf_to_image(infile, outfile, overwrite):
+    def tryint(s):
+        try:
+            return int(s)
+        except:
+            return s
+
+    def alphanum_key(s):
+        """ Turn a string into a list of string and number chunks.
+            "z23a" -> ["z", 23, "a"]
+        """
+        return [tryint(c) for c in re.split('([0-9]+)', s)]
+
+    def sort_nicely(l):
+        """ Sort the given list in the way that humans expect.
+        """
+        l.sort(key=alphanum_key)
+
+    dpi = 300
+    images_dir, _ = os.path.split(outfile)
+    if os.path.exists(images_dir) and len(os.listdir(images_dir)) > 0 and not overwrite:
+        files = os.listdir(images_dir)
+        files = [os.path.join(images_dir, f) for f in files]
+        sort_nicely(files)
+        return files
+
+    cmd = "convert -density %s -units PixelsPerInch %s %s" % (dpi, infile, outfile)
+    try:
+        subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError:
+        raise Exception("PDF to PNG Conversion Error")
+    files = os.listdir(images_dir)
+    sort_nicely(files)
+    files = [os.path.join(images_dir, f) for f in files]
+    return files
+
+def crop_image(infile, box, overwrite, page_width, page_height, padding=0):
+    pad = padding // 2
+    new_box = list(box)
+    new_box[0] = np.clip(box[0] - pad, 0, page_width)
+    new_box[1] = np.clip(box[1] - pad, 0, page_height)
+    new_box[2] = np.clip(box[2] + pad, 0, page_width)
+    new_box[3] = np.clip(box[3] + pad, 0, page_height)
+    offsets = [box[0] - new_box[0], box[1] - new_box[1], box[2] - new_box[2], box[3] - new_box[3]]
+    bbox = [300 * float(b) / 72 for b in new_box]
     width = int(bbox[2] - bbox[0])
     height = int(bbox[3] - bbox[1])
     x0 = int(bbox[0])
@@ -33,13 +77,14 @@ def crop_image(infile, box, overwrite):
     outfile = infile[0:-4] + '-'
     outfile += crop_params + '.png'
     if os.path.exists(outfile) and not overwrite:
-        return outfile
+        return outfile, offsets
     cmd = 'convert -crop ' + crop_params + ' ' + infile + ' ' + outfile
     try:
         subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError:
         raise Exception("Image Conversion Error during Cropping.")
-    return outfile
+
+    return outfile, offsets
 
 def rotate_image(image_file, rotation):
     cmd = "convert -density 300 -units PixelsPerInch -rotate %d %s %s" % (
@@ -49,19 +94,3 @@ def rotate_image(image_file, rotation):
     except subprocess.CalledProcessError:
         raise Exception("Image Conversion Error during Rotation.")
     return image_file
-
-def extract_image_regions(page_matrix):
-    regions = []
-    page_matrix = np.array(page_matrix).astype("uint8")
-    _, contours, _ = cv2.findContours(
-        page_matrix, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    for contour in contours:
-        points = [list(x) for xx in contour for x in xx]
-        points = np.array(points)
-        x0, y0 = np.min(points, axis=0)
-        x1, y1 = np.max(points, axis=0)
-        x1 += 1
-        y1 += 1
-        regions.append([x0, y0, x1, y1])
-    regions = sorted(regions, key=lambda x: (x[1], x[0]))
-    return regions

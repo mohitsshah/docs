@@ -106,3 +106,4 @@ venv.bak/
 .DS_Store
 TODO.md
 *.zip
+tmp/
