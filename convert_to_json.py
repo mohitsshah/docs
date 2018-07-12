@@ -20,8 +20,6 @@ logging.basicConfig(filename=LOG_FILE,
 ALLOWED_EXTENSIONS = ["pdf", "doc", "docx",
                       "xls", "xlsx", "xlsm", "tiff", "tif"]
 
-# ALLOWED_EXTENSIONS = ["docx"]
-
 def get_files(src, formats):
     """Find files in the source directory matching the allowed or user-selected extensions
 
@@ -58,7 +56,7 @@ def process_files(files, dst, tessdata, oem, overwrite, cleanup, store_results, 
     for num, file in enumerate(files, 1):
         _, filename = os.path.split(file)
         name, ext = os.path.splitext(filename)
-        # Sanitize the file name. No whitespaces are allowed.
+        # Sanitize the file name. Replace whitespaces.
         clean_name = name.replace(" ", "_")
         clean_filename = filename.replace(" ", "_")
         # Make the output directory.
@@ -74,8 +72,7 @@ def process_files(files, dst, tessdata, oem, overwrite, cleanup, store_results, 
         elif ext == ".doc":
             pass
         elif ext == ".docx":
-            job = word_docx.Processor(source_file, output_dir,
-                                tessdata, overwrite, cleanup, oem, store_results)
+            job = word_docx.Processor(source_file, output_dir, overwrite, cleanup)
             job.run()
         elif ext.startswith(".xls"):
             job = xlsx.Processor(source_file, output_dir, overwrite, cleanup)

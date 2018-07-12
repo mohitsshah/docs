@@ -9,12 +9,12 @@ def make_image_from_words(words, width, height):
     page_image_undilated = np.zeros((height, width), dtype=np.uint8)
     word_heights = []
     for word in words:
-        x0 = int(word[0])
-        x1 = int(word[2])
-        y0 = int(word[1])
-        y1 = int(word[3])
-        word_heights.append(y1-y0)
-        page_image_undilated[y0:y1, x0:x1] = 255
+        x_0 = int(word[0])
+        x_1 = int(word[2])
+        y_0 = int(word[1])
+        y_1 = int(word[3])
+        word_heights.append(y_1 - y_0)
+        page_image_undilated[y_0:y_1, x_0:x_1] = 255
     ker = np.ones((1, int(round(0.01 * width))), dtype=np.uint8)
     page_image = cv2.dilate(page_image_undilated, ker, iterations=1)
     word_heights = [int(x) for x in word_heights]
@@ -77,41 +77,35 @@ def are_columns_separable(box, page_matrix):
     cuts = cut_segment(box_dilated.T)
     if not cuts:
         return False
-    if len(cuts) > 1:
-        return True
-    else:
-        return False
+    return bool(len(cuts) > 1)
 
 
 def get_segment_margins(segment_matrix):
     top, bottom, left, right = [0]*4
-    segment_matrix_T = np.transpose(segment_matrix)
-    gaps = np.any(segment_matrix, axis=1).astype('int')
-    gaps_T = np.any(segment_matrix_T, axis=1).astype('int')
-    gaps = list(gaps)
-    gaps_T = list(gaps_T)
+    gaps_tb = list(np.any(segment_matrix, axis=1).astype('int'))
+    gaps_lr = list(np.any(segment_matrix.T, axis=1).astype('int'))
 
-    for i, val in enumerate(gaps):
+    for i, val in enumerate(gaps_tb):
         if val == 1:
             break
     top = i
 
-    gaps.reverse()
-    for i, val in enumerate(gaps):
+    gaps_tb.reverse()
+    for i, val in enumerate(gaps_tb):
         if val == 1:
             break
-    bottom = len(gaps) - i
+    bottom = len(gaps_tb) - i
 
-    for i, val in enumerate(gaps_T):
+    for i, val in enumerate(gaps_lr):
         if val == 1:
             break
     left = i
 
-    gaps_T.reverse()
-    for i, val in enumerate(gaps_T):
+    gaps_lr.reverse()
+    for i, val in enumerate(gaps_lr):
         if val == 1:
             break
-    right = len(gaps_T) - i
+    right = len(gaps_lr) - i
 
     return top, bottom, left, right
 
@@ -123,10 +117,7 @@ def is_region_sparse(box, page_matrix, threshold=0.8):
     num_white_pix = np.sum(cropped_matrix == 255)
     total_pix = cropped_matrix.shape[0]*cropped_matrix.shape[1]
     ratio = float(num_white_pix)/total_pix
-    if ratio <= threshold:
-        return True
-    else:
-        return False
+    return bool(ratio <= threshold)
 
 
 def label_segments(tb_cuts, lr_cuts, page_matrix):
@@ -158,7 +149,7 @@ def merge_table_neighbors(segments, page_matrix, words, median_height, threshold
         merge = []
         if idx in processed:
             continue
-        global_start, global_stop, label = segment
+        _, _, label = segment
         if label != "TABLE":
             continue
         prev = int(idx)
@@ -173,7 +164,6 @@ def merge_table_neighbors(segments, page_matrix, words, median_height, threshold
                 is_nearby = are_regions_nearby([prev_start, prev_stop], [
                                                start, stop], words, median_height, threshold)
                 if is_nearby:
-                    global_start = prev_start
                     merge.append(prev)
                     processed.append(prev)
                 else:
@@ -190,12 +180,25 @@ def merge_table_neighbors(segments, page_matrix, words, median_height, threshold
                     if (tmp_cuts[0][0] < tmp_width // 2):
                         if (tmp_cuts[0][1] > tmp_width // 2):
                             break
+
+                    # tmp = page_matrix[start:stop, :]
+                    # tmp_cuts = cut_segment(tmp.T)
+                    # left = tmp_cuts[0][0]
+                    # right = tmp_cuts[-1][1]
+                    # tmp = page_matrix[prev_start:prev_stop, left:right]
+                    # binary = np.any(tmp, axis=0).astype("int")
+                    # num_white_pix = np.sum(binary)
+                    # num_pix = len(binary)
+                    # ratio = float(num_white_pix)/num_pix
+                    # if ratio > 0.75:
+                    #     break
+
                     merge.append(prev)
                     processed.append(prev)
                 else:
                     break
 
-        global_start, global_stop, label = segment
+        _, _, label = segment
         nxt = int(idx)
         while True:
             nxt += 1
@@ -208,7 +211,6 @@ def merge_table_neighbors(segments, page_matrix, words, median_height, threshold
                 is_nearby = are_regions_nearby(
                     [start, stop], [nxt_start, nxt_stop], words, median_height, threshold)
                 if is_nearby:
-                    global_stop = nxt_stop
                     merge.append(nxt)
                     processed.append(nxt)
                 else:
@@ -225,6 +227,19 @@ def merge_table_neighbors(segments, page_matrix, words, median_height, threshold
                     if (tmp_cuts[0][0] < tmp_width // 2):
                         if (tmp_cuts[0][1] > tmp_width // 2):
                             break
+
+                    # tmp = page_matrix[start:stop, :]
+                    # tmp_cuts = cut_segment(tmp.T)
+                    # left = tmp_cuts[0][0]
+                    # right = tmp_cuts[-1][1]
+                    # tmp = page_matrix[prev_start:prev_stop, left:right]
+                    # binary = np.any(tmp, axis=0).astype("int")
+                    # num_white_pix = np.sum(binary)
+                    # num_pix = len(binary)
+                    # ratio = float(num_white_pix)/num_pix
+                    # if ratio > 0.75:
+                    #     break
+
                     merge.append(nxt)
                     processed.append(nxt)
                 else:
@@ -246,9 +261,9 @@ def merge_table_neighbors(segments, page_matrix, words, median_height, threshold
     indices = list(set(indices))
     indices.sort()
 
-    for idx, s in enumerate(segments):
+    for idx, segment in enumerate(segments):
         if idx not in indices:
-            new_segments.append(s)
+            new_segments.append(segment)
 
     segments = sorted(new_segments, key=lambda x: (x[0]))
     return segments
@@ -316,17 +331,107 @@ def merge_paragraph_neighbors(segments, page_matrix, words, median_height, thres
     indices = []
     for seg in merged_segments:
         indices.extend(seg)
-        m1 = seg[0]
-        s1 = segments[m1][0]
-        m2 = seg[-1]
-        s2 = segments[m2][1]
-        new_segments.append([s1, s2, "PARA"])
+        start = segments[seg[0]][0]
+        stop = segments[seg[-1]][1]
+        new_segments.append([start, stop, "PARA"])
     indices = list(set(indices))
     indices.sort()
 
-    for idx, s in enumerate(segments):
+    for idx, segment in enumerate(segments):
         if idx not in indices:
-            new_segments.append(s)
+            new_segments.append(segment)
+
+    segments = sorted(new_segments, key=lambda x: (x[0]))
+    return segments
+
+
+def are_tables_similar(segment1, segment2, tb_cuts, lr_cuts, height):
+    start1, stop1, _ = segment1
+    start2, stop2, _ = segment2
+
+    gap = float(start2 - stop1)
+    if gap > 0.05*height:
+        return False
+
+    rows1 = []
+    for index, t_b in enumerate(tb_cuts):
+        if t_b[0] < start1:
+            continue
+        if t_b[1] > stop1:
+            continue
+        rows1.append(index)
+
+    rows2 = []
+    for index, t_b in enumerate(tb_cuts):
+        if t_b[0] < start2:
+            continue
+        if t_b[1] > stop2:
+            continue
+        rows2.append(index)
+
+    cuts1 = [lr_cuts[i] for i in rows1]
+    cuts2 = [lr_cuts[i] for i in rows2]
+
+    if not cuts1 or not cuts2:
+        return False
+
+    left1 = min([x[0] for xx in cuts1 for x in xx])
+    left2 = min([x[0] for xx in cuts2 for x in xx])
+    right1 = max([x[1] for xx in cuts1 for x in xx])
+    right2 = max([x[1] for xx in cuts2 for x in xx])
+
+    if np.abs(left1 - left2) < 5 and np.abs(right1 - right2) < 5:
+        return True
+
+    return False
+
+
+def merge_consecutive_tables(segments, tb_cuts, lr_cuts, page_matrix):
+    processed = []
+    merged_segments = []
+    for idx, segment in enumerate(segments):
+        merge = []
+        if idx in processed:
+            continue
+        _, _, label = segment
+        if label != "TABLE":
+            continue
+        nxt = int(idx)
+        while True:
+            nxt += 1
+            if nxt >= len(segments) or nxt in processed:
+                break
+            nxt_segment = segments[nxt]
+            _, _, nxt_label = nxt_segment
+            if nxt_label != "TABLE":
+                break
+            is_similar = are_tables_similar(
+                segments[nxt-1], nxt_segment, tb_cuts, lr_cuts, page_matrix.shape[0])
+            if is_similar:
+                merge.append(nxt)
+                processed.append(nxt)
+            else:
+                break
+
+        if merge:
+            merge.append(idx)
+            merge.sort()
+            processed.append(idx)
+            merged_segments.append(merge)
+
+    new_segments = []
+    indices = []
+    for seg in merged_segments:
+        indices.extend(seg)
+        start = segments[seg[0]][0]
+        stop = segments[seg[-1]][1]
+        new_segments.append([start, stop, "TABLE"])
+    indices = list(set(indices))
+    indices.sort()
+
+    for idx, segment in enumerate(segments):
+        if idx not in indices:
+            new_segments.append(segment)
 
     segments = sorted(new_segments, key=lambda x: (x[0]))
     return segments
@@ -489,7 +594,7 @@ def split_multiline_cells(table):
                     for cell in cols:
                         try:
                             new_row.append(cell[idx])
-                        except Exception:
+                        except:
                             new_row.append([])
                     new_table.append(new_row)
         else:

@@ -385,7 +385,8 @@ def split(data_frame):
 
 if __name__ == "__main__":
     # path = "tmp/merged1/merged1.json"
-    path = "/Users/mohitshah/Projects/documents-caf/tmp/binder1/binder1.json"
+    # path = "/Users/mohitshah/Projects/documents-caf/tmp/binder1/binder1.json"
+    path = "/Users/mohitshah/Projects/documents-caf/tmp/binder2/binder2.json"
     # path = "/Users/mohitshah/Projects/documents-caf/tmp/536210_SF_Industrial_Building/536210_SF_Industrial_Building.json"
     # path = "/Users/mohitshah/Projects/documents-caf/tmp/appraisal/appraisal.json"
     # path = "/Users/mohitshah/Projects/documents-caf/tmp/tiff_example/tiff_example.json"

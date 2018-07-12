@@ -56,7 +56,6 @@ def convert_pdf_to_image(infile, outfile, overwrite):
         """
         l.sort(key=alphanum_key)
 
-    dpi = 300
     images_dir, _ = os.path.split(outfile)
     if os.path.exists(images_dir) and len(os.listdir(images_dir)) > 0 and not overwrite:
         files = os.listdir(images_dir)
@@ -64,8 +63,9 @@ def convert_pdf_to_image(infile, outfile, overwrite):
         sort_nicely(files)
         return files
 
-    cmd = "convert -scene 1 -density %s -units PixelsPerInch %s %s" % (
-        dpi, infile, outfile)
+    cmd = "convert -scene 1 -density 300 -units PixelsPerInch %s %s" % (
+        infile, outfile)
+
     try:
         subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError:
@@ -75,6 +75,42 @@ def convert_pdf_to_image(infile, outfile, overwrite):
     files = [os.path.join(images_dir, f) for f in files]
     return files
 
+def convert_tiff_to_image(infile, outfile, overwrite):
+    def tryint(s):
+        try:
+            return int(s)
+        except:
+            return s
+
+    def alphanum_key(s):
+        """ Turn a string into a list of string and number chunks.
+            "z23a" -> ["z", 23, "a"]
+        """
+        return [tryint(c) for c in re.split('([0-9]+)', s)]
+
+    def sort_nicely(l):
+        """ Sort the given list in the way that humans expect.
+        """
+        l.sort(key=alphanum_key)
+
+    images_dir, _ = os.path.split(outfile)
+    if os.path.exists(images_dir) and len(os.listdir(images_dir)) > 0 and not overwrite:
+        files = os.listdir(images_dir)
+        files = [os.path.join(images_dir, f) for f in files]
+        sort_nicely(files)
+        return files
+
+    cmd = "convert -scene 1 -units PixelsPerInch %s -resample 300 %s" % (
+        infile, outfile)
+
+    try:
+        subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError:
+        raise Exception("PDF to PNG Conversion Error")
+    files = os.listdir(images_dir)
+    sort_nicely(files)
+    files = [os.path.join(images_dir, f) for f in files]
+    return files
 
 def crop_image(infile, box, overwrite, page_width, page_height, padding=0):
     pad = padding // 2

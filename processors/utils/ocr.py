@@ -55,27 +55,13 @@ class OCR(object):
                     bbox[1] += pad_offset[1]
                     bbox[2] += pad_offset[0]
                     bbox[3] += pad_offset[1]
-                w = word.rstrip().lstrip()
-                if len(w) > 0:
+                word = word.rstrip().lstrip()
+                if word:
                     bbox.append(font_info)
-                    bbox.append(w)
+                    bbox.append(word)
                     words.append(bbox)
             except Exception as e:
-                print (str(e))
+                pass
+
         words = sorted(words, key=lambda x: (x[1], x[0]))
         return words
-
-
-
-if __name__ == "__main__":
-    # Mode: tesserocr
-    m = OSD(image_file="/Users/mohitshah/Others/processed_docs/pdf_example/images/pdf_example-1.png",
-            tessdata="/Users/mohitshah/Others/tessdata/v4")
-    o = m.perform_osd()
-    print(o)
-
-    # Mode: legacy
-    m = OSD(image_file="/Users/mohitshah/Others/processed_docs/pdf_example/images/pdf_example-1.png",
-            tessdata="/Users/mohitshah/Others/tessdata/v4", mode="legacy")
-    o = m.perform_osd()
-    print(o)

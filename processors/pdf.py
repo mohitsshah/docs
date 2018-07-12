@@ -263,12 +263,12 @@ class Processor(object):
 
             # Uncomment lines below to see top-bottom and left-right cuts
 
-            if self.debug_segmentation:
-                cv2.rectangle(debug_image, (0, t_b[0]), (int(
-                    width), t_b[1]), (255, 255, 0), 1)
-                for xx in l_r:
-                    cv2.rectangle(debug_image, (xx[0], t_b[0]),
-                                  (xx[1], t_b[1]), (255, 0, 255), 1)
+            # if self.debug_segmentation:
+                # cv2.rectangle(debug_image, (0, t_b[0]), (int(
+                #     width), t_b[1]), (255, 255, 0), 1)
+                # for xx in l_r:
+                #     cv2.rectangle(debug_image, (xx[0], t_b[0]),
+                #                   (xx[1], t_b[1]), (255, 0, 255), 1)
 
         t_b_threshold = 0.75
         if is_page_image:
@@ -278,6 +278,7 @@ class Processor(object):
             segments, page_matrix, words, median_height, t_b_threshold)
         segments = seg_utils.merge_paragraph_neighbors(
             segments, page_matrix, words, median_height, t_b_threshold)
+        segments = seg_utils.merge_consecutive_tables(segments, tb_cuts, lr_cuts, page_matrix)
         blocks.extend(seg_utils.make_blocks(segments, page_matrix, words))
         if self.debug_segmentation:
             for block in blocks:
@@ -387,7 +388,7 @@ class Processor(object):
 
         return page
 
-    def make_json(self, xml_file=None, images=None):
+    def make_json(self, xml_file=None, images=None, downsample=True):
         """[summary]
 
         Keyword Arguments:
@@ -473,7 +474,7 @@ class Processor(object):
                 data = self.make_json(xml_file=None, images=images)
         else:
             outfile = os.path.join(self.images_dir, self.name + ".png")
-            images = img_utils.convert_pdf_to_image(
+            images = img_utils.convert_tiff_to_image(
                 infile=self.source_file, outfile=outfile, overwrite=self.overwrite)
             data = self.make_json(xml_file=None, images=images)
 

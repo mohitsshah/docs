@@ -102,11 +102,9 @@ class Processor(object):
             indices = []
             for items in merge_list:
                 indices.extend(items)
-                m1 = items[0]
-                s1 = tb_cuts[m1][0]
-                m2 = items[-1]
-                s2 = tb_cuts[m2][1]
-                new_segments.append([s1, s2])
+                start = tb_cuts[items[0]][0]
+                stop = tb_cuts[items[-1]][1]
+                new_segments.append([start, stop])
             indices = list(set(indices))
             indices.sort()
 
@@ -148,6 +146,59 @@ class Processor(object):
         page = {"sheet_name": sheet_name, "tables": tables}
         return page
 
+    def make_json(self, data, error=None):
+        document = {}
+        document["source_file"] = self.source_file
+        document["source_format"] = "xlsx"
+        document["errorFlag"] = False
+        document["error"] = None
+        if error:
+            document["errorFlag"] = True
+            document["error"] = error
+            return document
+
+        document["TOC"] = {
+            "isGenerated": False,
+            "tocPageNumbers": [],
+            "tocNodes": []
+        }
+
+        document["numSheets"] = data["num_sheets"]
+        document["documentTables"] = []
+        for sheet in data["sheets"]:
+            sheet_name = sheet["sheet_name"]
+            for table in sheet["tables"]:
+                x_0, y_0, x_1, y_1, _, content = table
+                document_table = {
+                    "sheetName": sheet_name,
+                    "numRows": len(content),
+                    "numCols": len(content[0]),
+                    "coordinates": {
+                        "fromX": int(x_0),
+                        "fromY": int(y_0),
+                        "toX": int(x_1),
+                        "toY": int(y_1)
+                    },
+                    "headers": [],
+                    "cells": []
+                }
+                for row_index, row in enumerate(content):
+                    for col_index, col in enumerate(row):
+                        if col:
+                            cell = {
+                                "rowIndex": row_index,
+                                "colIndex": col_index,
+                                "data": col,
+                                "checkBox": {
+                                    "name": None,
+                                    "status": None
+                                }
+                            }
+                            document_table["cells"].append(cell)
+                document["documentTables"].append(document_table)
+
+        return document
+
     def run(self):
         data = {"num_sheets": 0, "sheets": []}
         workbook = open_workbook(self.source_file)
@@ -155,8 +206,7 @@ class Processor(object):
             page = self.make_page(sheet)
             data["sheets"].append(page)
             data["num_sheets"] += 1
-        model = DocumentModel()
-        document = model.create(data, self.source_file, source_format="xlsx")
+        document = self.make_json(data)
         self.save_document(document)
         return True
 

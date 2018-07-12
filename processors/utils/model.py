@@ -146,48 +146,8 @@ class DocumentModel(object):
             footer_segment["paragraph"]["words"].append(word)
         return footer_segment
 
-    def make_xlsx(self, data):
-        self.document["TOC"] = {
-            "isGenerated": False,
-            "tocPageNumbers": [],
-            "tocNodes": []
-        }
-        self.document["numSheets"] = data["num_sheets"]
-        self.document["documentTables"] = []
-        for sheet in data["sheets"]:
-            sheet_name = sheet["sheet_name"]
-            for table in sheet["tables"]:
-                x_0, y_0, x_1, y_1, _, content = table
-                document_table = {
-                    "sheetName": sheet_name,
-                    "numRows": len(content),
-                    "numCols": len(content[0]),
-                    "coordinates": {
-                        "fromX": int(x_0),
-                        "fromY": int(y_0),
-                        "toX": int(x_1),
-                        "toY": int(y_1)
-                    },
-                    "headers": [],
-                    "cells": []
-                }
-                for row_index, row in enumerate(content):
-                    for col_index, col in enumerate(row):
-                        if col:
-                            cell = {
-                                "rowIndex": row_index,
-                                "colIndex": col_index,
-                                "data": col,
-                                "checkBox": {
-                                    "name": None,
-                                    "status": None
-                                }
-                            }
-                            document_table["cells"].append(cell)
-                self.document["documentTables"].append(document_table)
-
     def make_generic(self, data):
-        self.document["numPages"] = data["num_pages"]
+        self.document["numPages"] = data["num_pages"] if "num_pages" in data else None
         self.document["TOC"] = {
             "isGenerated": False,
             "tocPageNumbers": [],
@@ -203,10 +163,10 @@ class DocumentModel(object):
                 document_page["error"] = page["error"]
                 self.document["documentPages"].append(document_page)
                 continue
-            document_page["pageWidth"] = int(page["width"])
-            document_page["pageHeight"] = int(page["height"])
-            document_page["pageImageOrientation"] = page["orientation"]
-            document_page["isPageImage"] = page["is_page_image"]
+            document_page["pageWidth"] = int(page["width"]) if "width" in page else None
+            document_page["pageHeight"] = int(page["height"]) if "height" in page else None
+            document_page["pageImageOrientation"] = page["orientation"] if "orientation" in page else None
+            document_page["isPageImage"] = page["is_page_image"] if "is_page_image" in page else None
             document_page["pageSegments"] = []
             document_page["pageHeaders"] = []
             document_page["pageFooters"] = []
@@ -262,11 +222,6 @@ class DocumentModel(object):
         if data is None:
             self.document["errorFlag"] = True
             self.document["error"] = error
-            return self.document
-        if source_format == "xlsx":
-            self.make_xlsx(data)
-            return self.document
-        if source_format == "docx":
             return self.document
 
         self.make_generic(data)
