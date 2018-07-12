@@ -188,7 +188,7 @@ class Processor(object):
                             cell = {
                                 "rowIndex": row_index,
                                 "colIndex": col_index,
-                                "data": col,
+                                "txt": col,
                                 "checkBox": {
                                     "name": None,
                                     "status": None
