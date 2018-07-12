@@ -60,8 +60,8 @@ class OCR(object):
                     bbox.append(font_info)
                     bbox.append(w)
                     words.append(bbox)
-            except Exception:
-                pass
+            except Exception as e:
+                print (str(e))
         words = sorted(words, key=lambda x: (x[1], x[0]))
         return words
 

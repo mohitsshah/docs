@@ -6,6 +6,20 @@ import re
 
 # TODO: Hide subprocess output messages
 
+
+def convert_image(infile, outfile, overwrite):
+    dpi = 300
+    if os.path.exists(outfile) and not overwrite:
+        return outfile
+    cmd = "convert -density %d -units PixelsPerInch %s -background white %s" % (
+        dpi, infile, outfile)
+    try:
+        subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError:
+        raise Exception("Image Conversion Error, File: %s" % infile)
+    return outfile
+
+
 def convert_page_to_image(page_id, infile, outfile, overwrite, resample=True):
     dpi = 300
     num = int(page_id)
@@ -22,6 +36,7 @@ def convert_page_to_image(page_id, infile, outfile, overwrite, resample=True):
     except subprocess.CalledProcessError:
         raise Exception("Image Conversion Error, Page: %s" % page_id)
     return outfile
+
 
 def convert_pdf_to_image(infile, outfile, overwrite):
     def tryint(s):
@@ -49,7 +64,8 @@ def convert_pdf_to_image(infile, outfile, overwrite):
         sort_nicely(files)
         return files
 
-    cmd = "convert -density %s -units PixelsPerInch %s %s" % (dpi, infile, outfile)
+    cmd = "convert -scene 1 -density %s -units PixelsPerInch %s %s" % (
+        dpi, infile, outfile)
     try:
         subprocess.check_output(cmd, shell=True)
     except subprocess.CalledProcessError:
@@ -59,6 +75,7 @@ def convert_pdf_to_image(infile, outfile, overwrite):
     files = [os.path.join(images_dir, f) for f in files]
     return files
 
+
 def crop_image(infile, box, overwrite, page_width, page_height, padding=0):
     pad = padding // 2
     new_box = list(box)
@@ -66,7 +83,8 @@ def crop_image(infile, box, overwrite, page_width, page_height, padding=0):
     new_box[1] = np.clip(box[1] - pad, 0, page_height)
     new_box[2] = np.clip(box[2] + pad, 0, page_width)
     new_box[3] = np.clip(box[3] + pad, 0, page_height)
-    offsets = [box[0] - new_box[0], box[1] - new_box[1], box[2] - new_box[2], box[3] - new_box[3]]
+    offsets = [box[0] - new_box[0], box[1] - new_box[1],
+               box[2] - new_box[2], box[3] - new_box[3]]
     bbox = [300 * float(b) / 72 for b in new_box]
     width = int(bbox[2] - bbox[0])
     height = int(bbox[3] - bbox[1])
@@ -85,6 +103,7 @@ def crop_image(infile, box, overwrite, page_width, page_height, padding=0):
         raise Exception("Image Conversion Error during Cropping.")
 
     return outfile, offsets
+
 
 def rotate_image(image_file, rotation):
     cmd = "convert -density 300 -units PixelsPerInch -rotate %d %s %s" % (

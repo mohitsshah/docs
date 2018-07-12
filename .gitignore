@@ -107,3 +107,4 @@ venv.bak/
 TODO.md
 *.zip
 tmp/
+logs/

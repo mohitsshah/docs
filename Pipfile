@@ -18,6 +18,8 @@ tabulate = "*"
 openpyxl = "*"
 tqdm = "*"
 matplotlib = "*"
+python-docx = "*"
+fuzzywuzzy = "*"
 
 [dev-packages]
 pylint = "*"
