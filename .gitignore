@@ -108,3 +108,4 @@ TODO.md
 *.zip
 tmp/
 logs/
+*.pkl
