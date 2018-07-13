@@ -3,37 +3,39 @@ import tabulate
 import os
 
 def export_tables(document, output_dir, name, fmt="txt", debug=False):
-    pages = document["pages"]
-    tables = [(page_num, segment["content"], segment["bbox"]) for page_num, page in enumerate(pages) for segment in page["segments"] if segment["label"] == "TABLE"]
-    for table_num, (page_num, table, bbox) in enumerate(tables):
-        table_string = []
-        table_string.append("Page: %d" % (page_num + 1))
-        num_rows = len(table)
-        num_cols = len(table[0])
-        bbox = [str(x) for x in bbox]
-        bbox = ", ".join(bbox)
-        table_string.append("Bounding Box: (%s)" % (bbox))
-        table_string.append("No. of Rows: %d" % (num_rows))
-        table_string.append("No. of Columns: %d" % (num_cols))
-        table_data = []
-        for row in table:
-            row_data = []
-            for col in row:
-                col = sorted(col, key=lambda x: (x[1], x[0]))
-                words = [c[-1] for c in col]
-                row_data.append(" ".join(words))
-            table_data.append(row_data)
-        df = pandas.DataFrame(table_data)
-        file_name = name + "-%d-%d.%s" % (page_num + 1, table_num + 1, fmt)
-        file_path = os.path.join(output_dir, file_name)        
-        if fmt == "txt":
-            table_string.append(tabulate.tabulate(df, tablefmt="psql"))            
-            open(file_path, "w").write("\n".join(table_string))            
-            if debug:
-                print ("\n".join(table_string))
-        elif fmt == "csv":
-            df.to_csv(file_path)
-        elif fmt == "xlsx":
-            writer = pandas.ExcelWriter(file_path)
-            df.to_excel(writer)
-            writer.save()
+    if document["errorFlag"]:
+        return
+    table_number = 0
+    for page in document.get("documentPages"):
+        page_number = page.get("pageNumber")
+        for segment in page.get("pageSegments"):
+            if not segment.get("isTable"):
+                continue
+            table = segment.get("table")
+            num_rows = table.get("numRows")
+            num_cols = table.get("numCols")
+            cells = table.get("cells")
+            data = [[[] for j in range(num_cols)] for i in range(num_rows)]
+            for cell in cells:
+                row_index = cell.get("rowIndex")
+                col_index = cell.get("colIndex")
+                words = cell.get("words")
+                text = []
+                for word in words:
+                    text.append(word.get("txt"))
+                data[row_index][col_index] = " ".join(text)
+            data_frame = pandas.DataFrame(data)
+            file_name = name + "-%d-%d.%s" % (page_number, table_number + 1, fmt)
+            file_path = os.path.join(output_dir, file_name)
+            if fmt == "txt":
+                table_string = [tabulate.tabulate(data_frame, tablefmt="psql")]
+                open(file_path, "w").write("\n".join(table_string))
+                if debug:
+                    print ("\n".join(table_string))
+            elif fmt == "csv":
+                data_frame.to_csv(file_path)
+            elif fmt == "xlsx":
+                writer = pandas.ExcelWriter(file_path)
+                data_frame.to_excel(writer)
+                writer.save()
+            table_number += 1
