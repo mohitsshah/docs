@@ -450,7 +450,7 @@ def make_cells(segment, margins, words, start, stop):
         # row_matrix = cropped_segment[t_b[0]:t_b[1], :].T
         l_r = cut_segment(row_matrix)
         lr_cuts.append(l_r)
-        if len(l_r) >= max_len:
+        if len(l_r) > max_len:
             max_len = len(l_r)
             max_idx = idx
     table = []
@@ -471,40 +471,40 @@ def make_cells(segment, margins, words, start, stop):
         # row_words = [w for w in row_words if w[0] >= x_0]
         # row_words = [w for w in row_words if w[2] <= x_1]
         row = []
-        if len(l_r) == max_len:
-            # Found exact match
-            for cell_x_0, cell_x_1 in l_r:
-                # cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
-                # cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
-                cell_words = [w for w in row_words if w[0] >= cell_x_0]
-                cell_words = [w for w in cell_words if w[2] <= cell_x_1]
-                cell_words = reorder_words(cell_words)
-                row.append(cell_words)
+        # if len(l_r) == max_len:
+        #     # Found exact match
+        #     for cell_x_0, cell_x_1 in l_r:
+        #         # cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
+        #         # cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
+        #         cell_words = [w for w in row_words if w[0] >= cell_x_0]
+        #         cell_words = [w for w in cell_words if w[2] <= cell_x_1]
+        #         cell_words = reorder_words(cell_words)
+        #         row.append(cell_words)
+        #     table.append(row)
+        # else:
+        row = [[] for _ in range(max_len)]
+        non_empty = False
+        for cell_x_0, cell_x_1 in l_r:
+            # cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
+            # cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
+            cell_words = [w for w in row_words if w[0] >= cell_x_0]
+            cell_words = [w for w in cell_words if w[2] <= cell_x_1]
+            if not cell_words:
+                continue
+            cell_words = reorder_words(cell_words)
+            cell_start = cell_words[0][0]
+            cell_stop = cell_words[-1][2]
+            selected_cell = None
+            for cell_idx, tmp in enumerate(ref_cells):
+                # if cell_start <= x_0 + tmp[1]:
+                if cell_start <= tmp[1]:
+                    selected_cell = cell_idx
+                    break
+            if selected_cell is not None:
+                row[selected_cell] += cell_words
+                non_empty = True
+        if non_empty:
             table.append(row)
-        else:
-            row = [[] for _ in range(max_len)]
-            non_empty = False
-            for cell_x_0, cell_x_1 in l_r:
-                # cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
-                # cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
-                cell_words = [w for w in row_words if w[0] >= cell_x_0]
-                cell_words = [w for w in cell_words if w[2] <= cell_x_1]
-                if not cell_words:
-                    continue
-                cell_words = reorder_words(cell_words)
-                cell_start = cell_words[0][0]
-                cell_stop = cell_words[-1][2]
-                selected_cell = None
-                for cell_idx, tmp in enumerate(ref_cells):
-                    # if cell_start <= x_0 + tmp[1]:
-                    if cell_start <= tmp[1]:
-                        selected_cell = cell_idx
-                        break
-                if selected_cell is not None:
-                    row[selected_cell] += cell_words
-                    non_empty = True
-            if non_empty:
-                table.append(row)
     return table
 
 
