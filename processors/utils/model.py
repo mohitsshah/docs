@@ -203,14 +203,20 @@ class DocumentModel(object):
 
             for footer in page["footers"]:
                 document_page["pageFooters"].append(self.make_footer(footer))
+            if boxes:
+                boxes = np.array(boxes).astype("int")
+                left, top = list(np.min(boxes[:, 0:2], axis=0))
+                right, bottom = list(np.max(boxes[:, 2:4], axis=0))
+                document_page["marginLeft"] = int(left)
+                document_page["marginTop"] = int(top)
+                document_page["marginRight"] = int(page["width"]) - int(right)
+                document_page["marginBottom"] = int(page["height"]) - int(bottom)
+            else:
+                document_page["marginLeft"] = 0
+                document_page["marginTop"] = 0
+                document_page["marginRight"] = int(page["width"])
+                document_page["marginBottom"] = int(page["height"])
 
-            boxes = np.array(boxes).astype("int")
-            left, top = list(np.min(boxes[:, 0:2], axis=0))
-            right, bottom = list(np.max(boxes[:, 2:4], axis=0))
-            document_page["marginLeft"] = int(left)
-            document_page["marginTop"] = int(top)
-            document_page["marginRight"] = int(page["width"]) - int(right)
-            document_page["marginBottom"] = int(page["height"]) - int(bottom)
             self.document["documentPages"].append(document_page)
 
 

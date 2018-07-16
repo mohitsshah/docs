@@ -109,3 +109,4 @@ TODO.md
 tmp/
 logs/
 *.pkl
+tmp_*

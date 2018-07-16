@@ -12,8 +12,7 @@ import argparse
 import glob
 import json
 import os
-
-from processors.utils.export import export_tables as export
+from processors.utils.export import export_text as export
 
 ALLOWED_EXTENSIONS = ["json"]
 
@@ -36,31 +35,29 @@ def get_files(src):
     return files
 
 
-def process_files(files, dst, fmt):
+def process_files(files, dst):
     """[summary]
 
     Arguments:
         files {[type]} -- [description]
         dst {[type]} -- [description]
-        fmt {[type]} -- [description]
     """
 
     for file in files:
-        document = json.load(open(file))
         _, file_name = os.path.split(file)
         name, _ = os.path.splitext(file_name)
+        document = json.load(open(file))
         dst_dir = os.path.join(dst, name)
         os.makedirs(dst_dir, exist_ok=True)
-        export(document, dst_dir, name, fmt)
+        export(document, dst_dir, name)
 
 
-def run(src, dst, fmt):
+def run(src, dst):
     """[summary]
 
     Arguments:
         src {[type]} -- [description]
         dst {[type]} -- [description]
-        fmt {[type]} -- [description]
 
     Raises:
         Exception -- [description]
@@ -75,7 +72,7 @@ def run(src, dst, fmt):
     if not files:
         raise Exception("Found 0 files in %s" % (src))
     os.makedirs(dst, exist_ok=True)
-    process_files(files, dst, fmt)
+    process_files(files, dst)
 
 
 if __name__ == '__main__':
@@ -86,19 +83,12 @@ if __name__ == '__main__':
                         type=str,
                         required=True,
                         dest="src",
-                        help="Source directory of files/Single JSON file")
+                        help="Source directory of JSON files")
     PARSER.add_argument("-d",
                         "--dst",
                         type=str,
                         required=True,
                         dest="dst",
                         help="Destination directory")
-    PARSER.add_argument("-f",
-                        "--fmt",
-                        type=str,
-                        required=True,
-                        choices=["txt", "csv", "xlsx", "df"],
-                        dest="fmt",
-                        help="Format to write Tables.")
     FLAGS = PARSER.parse_args()
     run(**vars(FLAGS))

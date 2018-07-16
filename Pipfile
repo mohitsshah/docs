@@ -21,6 +21,7 @@ matplotlib = "*"
 python-docx = "*"
 fuzzywuzzy = "*"
 "pypdf2" = "*"
+jupyter = "*"
 
 [dev-packages]
 pylint = "*"

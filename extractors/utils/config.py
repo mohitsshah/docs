@@ -2,17 +2,16 @@ import os
 import tensorflow as tf
 import json
 
-def make_configs(args):
+def make_configs(data_dir, model_dir, model_name):
     configs = {}
 
-    data_dir = os.path.abspath(args["data_dir"])
+    data_dir = os.path.abspath(data_dir)
     if not os.path.exists(data_dir):
         raise Exception("QANet data directory (%s) does not exist" % (data_dir))
 
-    model_dir = os.path.abspath(args["model_dir"])
-    model_name = args["model_name"]
+    model_dir = os.path.abspath(model_dir)
     model_path = os.path.join(model_dir, model_name)
-    
+
     if not os.path.exists(model_path):
         raise Exception("QANet model directory (%s) does not exist" % (model_path))
 
@@ -44,5 +43,5 @@ def make_configs(args):
     configs["num_heads"] = 1
     configs["q2c"] = True
     configs["l2_norm"] = 3e-7
-    
+
     return configs
