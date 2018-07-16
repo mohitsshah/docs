@@ -154,7 +154,7 @@ class Extractor(object):
                     if not match:
                         continue
                     if row_index == 0:
-                        if num_rows > 1:
+                        if num_rows < 4:
                             key = col
                             value = table[row_index+1][col_index]
                             matches.append({
@@ -178,6 +178,7 @@ class Extractor(object):
             if "paragraph" in segment:
                 results = self.search_paragraph(term, segment["paragraph"])
                 for result in results:
+                    result["paragraph"] = self.content[page_num]["raw_text"]
                     result["segment_index"] = index
                     result["page_num"] = page_num
                 matches.extend(results)
