@@ -438,13 +438,16 @@ def merge_consecutive_tables(segments, tb_cuts, lr_cuts, page_matrix):
 
 
 def make_cells(segment, margins, words, start, stop):
-    cropped_segment = segment[margins[0]:margins[1], margins[2]:margins[3]]
-    tb_cuts = cut_segment(cropped_segment)
+    # cropped_segment = segment[margins[0]:margins[1], margins[2]:margins[3]]
+    # tb_cuts = cut_segment(cropped_segment)
+    tb_cuts = cut_segment(segment)
+
     lr_cuts = []
     max_len = 0
     max_idx = -1
     for idx, t_b in enumerate(tb_cuts):
-        row_matrix = cropped_segment[t_b[0]:t_b[1], :].T
+        row_matrix = segment[t_b[0]:t_b[1], :].T
+        # row_matrix = cropped_segment[t_b[0]:t_b[1], :].T
         l_r = cut_segment(row_matrix)
         lr_cuts.append(l_r)
         if len(l_r) >= max_len:
@@ -456,20 +459,25 @@ def make_cells(segment, margins, words, start, stop):
 
     ref_cells = lr_cuts[max_idx]
     for idx, (t_b, l_r) in enumerate(zip(tb_cuts, lr_cuts)):
-        x_0 = margins[2]
-        x_1 = margins[3]
-        y_0 = float(start + margins[0] + t_b[0])
-        y_1 = float(start + margins[0] + t_b[1])
+        # x_0 = margins[2]
+        # x_1 = margins[3]
+        # y_0 = float(start + margins[0] + t_b[0])
+        # y_1 = float(start + margins[0] + t_b[1])
+
+        y_0 = float(start + t_b[0])
+        y_1 = float(start + t_b[1])
         row_words = [w for w in words if w[1] >= y_0]
         row_words = [w for w in row_words if w[3] <= y_1]
-        row_words = [w for w in row_words if w[0] >= x_0]
-        row_words = [w for w in row_words if w[2] <= x_1]
+        # row_words = [w for w in row_words if w[0] >= x_0]
+        # row_words = [w for w in row_words if w[2] <= x_1]
         row = []
         if len(l_r) == max_len:
             # Found exact match
             for cell_x_0, cell_x_1 in l_r:
-                cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
-                cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
+                # cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
+                # cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
+                cell_words = [w for w in row_words if w[0] >= cell_x_0]
+                cell_words = [w for w in cell_words if w[2] <= cell_x_1]
                 cell_words = reorder_words(cell_words)
                 row.append(cell_words)
             table.append(row)
@@ -477,8 +485,10 @@ def make_cells(segment, margins, words, start, stop):
             row = [[] for _ in range(max_len)]
             non_empty = False
             for cell_x_0, cell_x_1 in l_r:
-                cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
-                cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
+                # cell_words = [w for w in row_words if w[0] >= x_0 + cell_x_0]
+                # cell_words = [w for w in cell_words if w[2] <= x_0 + cell_x_1]
+                cell_words = [w for w in row_words if w[0] >= cell_x_0]
+                cell_words = [w for w in cell_words if w[2] <= cell_x_1]
                 if not cell_words:
                     continue
                 cell_words = reorder_words(cell_words)
@@ -486,11 +496,9 @@ def make_cells(segment, margins, words, start, stop):
                 cell_stop = cell_words[-1][2]
                 selected_cell = None
                 for cell_idx, tmp in enumerate(ref_cells):
-                    if cell_start <= x_0 + tmp[1]:
+                    # if cell_start <= x_0 + tmp[1]:
+                    if cell_start <= tmp[1]:
                         selected_cell = cell_idx
-                        break
-                for cell_idx, tmp in enumerate(ref_cells):
-                    if cell_stop <= x_0 + tmp[0]:
                         break
                 if selected_cell is not None:
                     row[selected_cell] += cell_words
